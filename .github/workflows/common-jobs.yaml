@@ -1,0 +1,78 @@
+name: Go Reusable CI
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        required: true
+        type: string
+        description: "The directory containing the Go service (e.g. cmd/mailer)"
+      binary-name:
+        required: true
+        type: string
+        description: "The name of the binary output (e.g. expenses, mailer)"
+      go-version:
+        required: false
+        type: string
+        default: ">=1.22"
+        description: "Go version to use"
+    outputs:
+      is_success:
+        description: 'Indicates if the jobs were successful'
+        value: ${{ jobs.lint.result }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # calling the local composite action
+      - name: Setup Go Environment
+        uses: ./.github/actions/go-setup-action
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: Build
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          go build -o ${{ inputs.binary-name }} .
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4      
+
+    # calling the local composite action
+      - name: Setup Go Environment
+        uses: ./.github/actions/go-setup-action
+        with:
+          go-version: ">=1.22"
+
+      - name: Unit Tests
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          go test 
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # calling the local composite action
+      - name: Setup Go Environment
+        uses: ./.github/actions/go-setup-action
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9.1.0
+        with:
+          version: v2.6
+          working-directory: ${{ inputs.working-directory }}
+          args: run
+        continue-on-error: true
