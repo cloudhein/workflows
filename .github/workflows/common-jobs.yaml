@@ -74,5 +74,5 @@ jobs:
         with:
           version: v2.6
           working-directory: ${{ inputs.working-directory }}
-          args: run
+          # args: run
         continue-on-error: true
