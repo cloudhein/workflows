@@ -2,6 +2,10 @@ name: Go Reusable CI
 
 on:
   workflow_call:
+    secrets:
+      sonar_token:
+        required: true
+        
     inputs:
       working-directory:
         required: true
@@ -16,6 +20,14 @@ on:
         type: string
         default: ">=1.22"
         description: "Go version to use"
+      sonar-project-key:
+        required: true
+        type: string
+        description: "SonarCloud project key"
+      sonar-organization:
+        required: true
+        type: string
+        description: "SonarCloud organization"
     outputs:
       is_success:
         description: 'Indicates if the jobs were successful'
@@ -76,3 +88,38 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
           # args: run
         continue-on-error: true
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - lint
+      - test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.sonar_token }}        
+        with:
+          args: >
+            -Dsonar.projectKey=${{ inputs.sonar-project-key }}
+            -Dsonar.organization=${{ inputs.sonar-organization }}
+
+        # Check the Quality Gate status
+      - name: SonarCloud Quality Gate Check
+        id: sonarcloud-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 300
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # SONAR_HOST_URL is not needed for SonarCloud
+
+      # Optional: Show the Quality Gate status
+      - name: Show SonarCloud Quality Gate Status
+        run: echo "The Quality Gate status is ${{ steps.sonarcloud-quality-gate-check.outputs.quality-gate-status }}"
