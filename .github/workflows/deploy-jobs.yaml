@@ -15,6 +15,15 @@ on:
         required: true
         type: string
         description: "The k8s manifest filename to update (e.g. mailer.yaml)"
+      repository:
+        required: false
+        type: string
+        description: "The repository containing the k8s manifests to update"
+      directory:
+        required: false
+        type: string
+        description: "The directory in the repository containing the k8s manifests"
+
     secrets:
       DOCKERHUB_TOKEN:
         required: true
@@ -67,7 +76,7 @@ jobs:
       - name: Checkout K8s manifest repository
         uses: actions/checkout@v4
         with:
-          repository: cloudhein/flextrack-microservices
+          repository: ${{ inputs.repository }}
           ref: main 
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} 
           path: flextrack-repo 
@@ -75,10 +84,10 @@ jobs:
       - name: Update Kubernetes manifest
         run: |
           # Dynamically update the image based on input variables
-          sed -i "s|image: .*|image: ${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }}|g" flextrack-repo/flextrack-local-kind-eso/${{ inputs.manifest-file }}
+          sed -i "s|image: .*|image: ${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }}|g" flextrack-repo/${{ inputs.directory }}/${{ inputs.manifest-file }}
 
       - name: Commit and push changes to K8s repo
-        working-directory: flextrack-repo/flextrack-local-kind-eso
+        working-directory: flextrack-repo/${{ inputs.directory }}
         run: |
           git config --local user.name "GitHub Actions Bot"
           git config --local user.email "actions@github.com"
