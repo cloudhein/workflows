@@ -11,10 +11,6 @@ on:
         required: true
         type: string
         description: "The name of the service (e.g. expenses, mailer) used for image names"
-      helm-chart-name:
-        required: true
-        type: string
-        description: "The helm chart directory name (e.g. expenses-helm-chart, mailer-helm-chart)"
       helm-repo:
         required: true
         type: string
@@ -80,11 +76,11 @@ jobs:
       - name: Update Helm Chart appVersion
         run: |
           # Update the appVersion in Chart.yaml with the full Docker image tag
-          chart_file="helm-repo/${{ inputs.helm-chart-name }}/Chart.yaml"
+          chart_file="helm-repo/Chart.yaml"
           sed -i "s|appVersion: .*|appVersion: \"${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }}\"|g" "$chart_file"
 
       - name: Commit and push changes to Helm repo
-        working-directory: helm-repo/${{ inputs.helm-chart-name }}
+        working-directory: helm-repo
         run: |
           git config --local user.name "GitHub Actions Bot"
           git config --local user.email "actions@github.com"
