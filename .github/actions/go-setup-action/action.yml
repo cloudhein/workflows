@@ -5,7 +5,7 @@ inputs:
   go-version:
     description: 'Version of Go to set up'
     required: false
-    default: ">=1.22"
+    default: ">=1.25"
 
 outputs:
   is_success:
