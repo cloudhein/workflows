@@ -44,15 +44,16 @@ jobs:
 
       - name: Scan image in a private registry
         id: trivy-scan
-        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6366cf37
         with:
           image-ref: ${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }} 
-          scan-type: image
-          severity: 'CRITICAL'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
+          scan-type: image
           scanners: 'vuln,secret'
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
 
       - name: Push Docker images
         if: steps.trivy-scan.outcome == 'success'
