@@ -44,7 +44,7 @@ jobs:
 
       - name: Scan image in a private registry
         id: trivy-scan
-        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6366cf37
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }} 
           format: 'table'
