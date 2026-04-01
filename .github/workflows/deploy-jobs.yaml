@@ -1,4 +1,4 @@
-name: Reusable Docker Build & K8s Update
+name: Reusable Docker Build & Helm Chart Update
 
 on:
   workflow_call:
@@ -11,18 +11,14 @@ on:
         required: true
         type: string
         description: "The name of the service (e.g. expenses, mailer) used for image names"
-      manifest-file:
+      helm-chart-name:
         required: true
         type: string
-        description: "The k8s manifest filename to update (e.g. mailer.yaml)"
-      repository:
-        required: false
+        description: "The helm chart directory name (e.g. expenses-helm-chart, mailer-helm-chart)"
+      helm-repo:
+        required: true
         type: string
-        description: "The repository containing the k8s manifests to update"
-      directory:
-        required: false
-        type: string
-        description: "The directory in the repository containing the k8s manifests"
+        description: "The repository containing the helm charts to update"
 
     secrets:
       DOCKERHUB_TOKEN:
@@ -66,36 +62,37 @@ jobs:
         if: steps.trivy-scan.outcome == 'success'
         run: docker push "${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }}"
 
-  update-k8s-manifest:
+  update-helm-chart:
     runs-on: ubuntu-latest
     needs: containerize
     steps:
       - name: Checkout application code
         uses: actions/checkout@v4
 
-      - name: Checkout K8s manifest repository
+      - name: Checkout Helm charts repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.repository }}
-          ref: main 
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} 
-          path: flextrack-repo 
+          repository: ${{ inputs.helm-repo }}
+          ref: main
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: helm-repo
 
-      - name: Update Kubernetes manifest
+      - name: Update Helm Chart appVersion
         run: |
-          # Dynamically update the image based on input variables
-          sed -i "s|image: .*|image: ${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }}|g" flextrack-repo/${{ inputs.directory }}/${{ inputs.manifest-file }}
+          # Update the appVersion in Chart.yaml with the full Docker image tag
+          chart_file="helm-repo/${{ inputs.helm-chart-name }}/Chart.yaml"
+          sed -i "s|appVersion: .*|appVersion: \"${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }}\"|g" "$chart_file"
 
-      - name: Commit and push changes to K8s repo
-        working-directory: flextrack-repo/${{ inputs.directory }}
+      - name: Commit and push changes to Helm repo
+        working-directory: helm-repo/${{ inputs.helm-chart-name }}
         run: |
           git config --local user.name "GitHub Actions Bot"
           git config --local user.email "actions@github.com"
-          git add ${{ inputs.manifest-file }}
-          
+          git add Chart.yaml
+
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "[CI] Update ${{ inputs.service-name }} image to ${{ github.run_id }} [skip ci]"
+            git commit -m "[CI] Update ${{ inputs.service-name }} appVersion to ${{ github.run_id }} [skip ci]"
             git push origin main
           fi
