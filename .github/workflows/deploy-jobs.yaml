@@ -78,7 +78,7 @@ jobs:
         run: |
           # Update the appVersion in Chart.yaml with the full Docker image tag
           chart_file="helm-repo/Chart.yaml"
-          sed -i "s|appVersion: .*|appVersion: \"${{ inputs.dockerhub-username }}/${{ inputs.service-name }}:${{ github.run_id }}\"|g" "$chart_file"
+          sed -i "s|appVersion: .*|appVersion: \"${{ github.run_id }}\"|g" "$chart_file"
 
       - name: Commit and push changes to Helm repo
         working-directory: helm-repo
